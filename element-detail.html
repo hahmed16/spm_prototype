@@ -290,6 +290,7 @@
                     <span class="text-gray-500">Target: <strong x-text="ind.target"></strong></span>
                     <span class="text-gray-700 font-semibold">Current: <span x-text="ind.current" class="text-indigo-600"></span></span>
                   </div>
+                  <div class="text-xs text-indigo-600 mt-1 font-medium" x-text="indicatorContributionText(ind)"></div>
                 </div>
                 <div class="flex flex-col items-end gap-1">
                   <div class="text-lg font-bold" :class="ind.onTrack ? 'text-emerald-600' : 'text-red-600'" x-text="ind.achievement + '%'"></div>
@@ -575,6 +576,24 @@
       <textarea x-model="linkModal.form.description" rows="3" placeholder="Description" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 outline-none resize-none"></textarea>
     </div>
 
+    <div x-show="linkModal.mode==='indicator-existing' || linkModal.mode==='indicator-new'" class="mt-3 grid grid-cols-2 gap-2">
+      <div>
+        <label class="text-xs text-gray-500 block mb-1">Contribution Type</label>
+        <select x-model="linkModal.form.contributionType" class="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-300 outline-none">
+          <option value="IMPACT">Impact (1-10)</option>
+          <option value="PERCENT">Contribution %</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 block mb-1">Value</label>
+        <input x-model.number="linkModal.form.contributionValue"
+               :min="linkModal.form.contributionType==='PERCENT' ? 0 : 1"
+               :max="linkModal.form.contributionType==='PERCENT' ? 100 : 10"
+               type="number" step="1"
+               class="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm focus:ring-2 focus:ring-indigo-300 outline-none" />
+      </div>
+    </div>
+
     <div x-show="linkModal.message" class="mt-3 text-xs rounded-lg px-3 py-2 border"
          :class="linkModal.messageType==='error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'"
          x-text="linkModal.message"></div>
@@ -598,7 +617,7 @@ function app() {
       mode: '',
       search: '',
       selectedId: null,
-      form: { name: '', description: '' },
+      form: { name: '', description: '', contributionType: 'IMPACT', contributionValue: 5 },
       message: '',
       messageType: 'error',
     },
@@ -644,11 +663,11 @@ function app() {
 
     indicators: [
       { id:1, name:'Fiber Penetration Rate', description:'% of households with fiber access',
-        baseline:'42%', target:'95%', current:'67%', achievement:47, onTrack:true },
+        baseline:'42%', target:'95%', current:'67%', achievement:47, onTrack:true, contributionType:'IMPACT', contributionValue:8 },
       { id:2, name:'Phase Delivery On-Time Rate', description:'% of phases delivered on schedule',
-        baseline:'0', target:'100%', current:'67%', achievement:67, onTrack:true },
+        baseline:'0', target:'100%', current:'67%', achievement:67, onTrack:true, contributionType:'PERCENT', contributionValue:40 },
       { id:3, name:'Cost Per Household (OMR)', description:'Average infrastructure cost per connected household',
-        baseline:'3200', target:'2500', current:'2850', achievement:50, onTrack:false },
+        baseline:'3200', target:'2500', current:'2850', achievement:50, onTrack:false, contributionType:'PERCENT', contributionValue:20 },
     ],
 
     risks: [
@@ -707,7 +726,7 @@ function app() {
         mode,
         search: '',
         selectedId: null,
-        form: { name: '', description: '' },
+        form: { name: '', description: '', contributionType: 'IMPACT', contributionValue: 5 },
         message: '',
         messageType: 'error',
       };
@@ -740,15 +759,23 @@ function app() {
     submitLinkModal() {
       this.linkModal.message = '';
       const mode = this.linkModal.mode;
+      const contributionType = this.linkModal.form.contributionType;
+      let contributionValue = Number(this.linkModal.form.contributionValue);
+
+      if (mode === 'indicator-existing' || mode === 'indicator-new') {
+        if (!Number.isFinite(contributionValue)) { this.linkModal.message = 'Contribution value is required.'; return; }
+        if (contributionType === 'PERCENT') contributionValue = Math.max(0, Math.min(100, contributionValue));
+        if (contributionType === 'IMPACT') contributionValue = Math.max(1, Math.min(10, contributionValue));
+      }
 
       if (mode === 'indicator-existing') {
         const c = this.existingIndicators.find(x => x.id === this.linkModal.selectedId);
         if (!c) { this.linkModal.message = 'Please select an existing indicator.'; return; }
-        this.indicators.unshift({ id: Date.now(), name: c.name, description: c.meta, baseline: '0', target: '100%', current: '0%', achievement: 0, onTrack: true });
+        this.indicators.unshift({ id: Date.now(), name: c.name, description: c.meta, baseline: '0', target: '100%', current: '0%', achievement: 0, onTrack: true, contributionType, contributionValue });
       }
       if (mode === 'indicator-new') {
         if (!this.linkModal.form.name.trim()) { this.linkModal.message = 'Indicator name is required.'; return; }
-        this.indicators.unshift({ id: Date.now(), name: this.linkModal.form.name.trim(), description: this.linkModal.form.description.trim(), baseline: '0', target: '100%', current: '0%', achievement: 0, onTrack: true });
+        this.indicators.unshift({ id: Date.now(), name: this.linkModal.form.name.trim(), description: this.linkModal.form.description.trim(), baseline: '0', target: '100%', current: '0%', achievement: 0, onTrack: true, contributionType, contributionValue });
       }
       if (mode === 'risk-existing') {
         const c = this.existingRisks.find(x => x.id === this.linkModal.selectedId);
@@ -768,6 +795,10 @@ function app() {
       this.linkModal.messageType = 'success';
       this.linkModal.message = 'Saved.';
       setTimeout(() => this.closeLinkModal(), 300);
+    },
+    indicatorContributionText(ind) {
+      if (ind.contributionType === 'PERCENT') return `Contribution: ${ind.contributionValue ?? 0}%`;
+      return `Impact: ${ind.contributionValue ?? 0}/10`;
     },
     openPaymentModal() {
       this.paymentModal = {
