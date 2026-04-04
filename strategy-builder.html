@@ -312,7 +312,7 @@
 
           <!-- Tabs -->
           <div class="flex border-b border-gray-100 flex-shrink-0 overflow-x-auto">
-            <template x-for="t in ['Details','Progress','Budget','Indicators','Risks','Team','Links']" :key="t">
+            <template x-for="t in ['Details','Progress','Budget','KPIs','Quarterly','Risks','Team','Links']" :key="t">
               <button @click="detailTab=t"
                 :class="detailTab===t ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-400 hover:text-gray-600'"
                 class="px-3 py-2.5 text-xs font-medium whitespace-nowrap transition flex-shrink-0" x-text="t"></button>
@@ -518,37 +518,114 @@
             </div>
           </div>
 
-          <!-- Tab: Indicators -->
-          <div x-show="detailTab==='Indicators'" class="flex-1 overflow-y-auto p-3.5 space-y-3">
-            <template x-if="typeAllowsIndicators(selectedElement?.type)">
+          <!-- Tab: KPIs -->
+          <div x-show="detailTab==='KPIs'" class="flex-1 overflow-y-auto p-3.5 space-y-3">
+            <template x-if="typeAllowsKPIs(selectedElement?.type)">
               <div class="space-y-2.5">
                 <div class="flex items-center justify-between">
-                  <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Linked Indicators</div>
+                  <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Linked KPIs</div>
                   <a href="indicators.html" class="text-xs text-indigo-600 hover:underline font-medium">Manage</a>
                 </div>
                 <div class="space-y-2">
-                  <template x-for="ind in linkedIndicatorsForSelected()" :key="ind.id">
+                  <template x-for="ind in linkedKPIsForSelected()" :key="ind.id">
                     <div class="border border-gray-200 rounded-lg px-3 py-2">
                       <div class="text-sm font-medium text-gray-800" x-text="ind.name"></div>
                       <div class="text-xs text-gray-400 mt-0.5" x-text="ind.current"></div>
-                      <div class="text-xs text-indigo-600 mt-0.5 font-medium" x-text="indicatorContributionText(ind)">
+                      <div class="text-xs text-indigo-600 mt-0.5 font-medium" x-text="kpiContributionText(ind)">
                       </div>
                     </div>
                   </template>
-                  <div x-show="linkedIndicatorsForSelected().length===0" class="text-xs text-gray-500 italic">No
-                    indicators linked yet.</div>
+                  <div x-show="linkedKPIsForSelected().length===0" class="text-xs text-gray-500 italic">No
+                    KPIs linked yet.</div>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <button @click="openIndicatorLinkModal('existing')"
-                    class="text-xs border border-gray-300 rounded-lg py-2 hover:bg-gray-50">+ Link Existing</button>
+                    class="text-xs border border-gray-300 rounded-lg py-2 hover:bg-gray-50">+ Link Existing KPI</button>
                   <button @click="openIndicatorLinkModal('new')"
-                    class="text-xs bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700">+ Create New</button>
+                    class="text-xs bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700">+ Create New KPI</button>
                 </div>
               </div>
             </template>
-            <template x-if="!typeAllowsIndicators(selectedElement?.type)">
+            <template x-if="!typeAllowsKPIs(selectedElement?.type)">
               <div class="text-xs bg-amber-50 text-amber-800 border border-amber-200 rounded-lg px-3 py-2">
-                Indicators are disabled for this element type in strategy configuration.
+                KPIs are disabled for this element type in strategy configuration.
+              </div>
+            </template>
+          </div>
+
+          <!-- Tab: Quarterly -->
+          <div x-show="detailTab==='Quarterly'" class="flex-1 overflow-y-auto p-3.5 space-y-3">
+            <template x-if="typeAllowsQuarterly(selectedElement?.type)">
+              <div class="space-y-3">
+                <div class="text-xs text-gray-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+                  Quarterly measurable is enabled. Add yearly plans with baseline and Q1-Q4 target/actual values.
+                </div>
+                <div class="border border-gray-200 rounded-xl p-3 space-y-2">
+                  <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Add Year Plan</div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input x-model.number="quarterlyDraft.year" type="number" min="2000" max="2100"
+                      class="border border-gray-200 rounded-lg px-2.5 py-2 text-sm focus:ring-2 focus:ring-indigo-300 outline-none"
+                      placeholder="Year" />
+                    <input x-model="quarterlyDraft.baseline" type="text"
+                      class="border border-gray-200 rounded-lg px-2.5 py-2 text-sm focus:ring-2 focus:ring-indigo-300 outline-none"
+                      placeholder="Baseline value" />
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <select x-model="quarterlyDraft.direction"
+                      class="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-300 outline-none">
+                      <option value="HIGHER_BETTER">Higher is better</option>
+                      <option value="LOWER_BETTER">Lower is better</option>
+                    </select>
+                    <button @click="addQuarterlyYear()"
+                      class="text-xs bg-indigo-600 text-white rounded-lg px-3 py-2 hover:bg-indigo-700">+ Add Year</button>
+                  </div>
+                </div>
+
+                <template x-for="entry in quarterlyEntriesForSelected()" :key="entry.year">
+                  <div class="border border-gray-200 rounded-xl p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                      <div class="text-sm font-semibold text-gray-800" x-text="'Year ' + entry.year"></div>
+                      <button @click="removeQuarterlyYear(entry.year)"
+                        class="text-xs text-rose-600 hover:text-rose-700 font-medium">Remove</button>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      Baseline: <span class="font-medium text-gray-700" x-text="entry.baseline || '-'"></span>
+                      <span class="mx-1">•</span>
+                      Direction: <span class="font-medium text-gray-700"
+                        x-text="entry.direction==='LOWER_BETTER' ? 'Lower is better' : 'Higher is better'"></span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <template x-for="q in ['Q1','Q2','Q3','Q4']" :key="q">
+                        <div class="border rounded-lg p-2" :class="quarterlyAlert(entry, q) ? 'border-amber-300 bg-amber-50/60' : 'border-gray-200'">
+                          <div class="text-xs font-semibold text-gray-600 mb-1" x-text="q"></div>
+                          <div class="space-y-1.5">
+                            <div>
+                              <label class="text-[11px] text-gray-500 block mb-0.5">Target</label>
+                              <input x-model.number="entry[q].target" @change="persistState()" type="number" step="0.01"
+                                class="w-full border border-gray-200 rounded-md px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-300 outline-none" />
+                            </div>
+                            <div>
+                              <label class="text-[11px] text-gray-500 block mb-0.5">Actual</label>
+                              <input x-model.number="entry[q].actual" @change="persistState()" type="number" step="0.01"
+                                class="w-full border border-gray-200 rounded-md px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-300 outline-none" />
+                            </div>
+                            <div x-show="quarterlyAlert(entry, q)" class="text-[11px] text-amber-700 font-medium">
+                              Threshold alert
+                            </div>
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+                <div x-show="quarterlyEntriesForSelected().length===0" class="text-xs text-gray-500 italic">
+                  No quarterly plans added yet.
+                </div>
+              </div>
+            </template>
+            <template x-if="!typeAllowsQuarterly(selectedElement?.type)">
+              <div class="text-xs bg-amber-50 text-amber-800 border border-amber-200 rounded-lg px-3 py-2">
+                Quarterly measurable is disabled for this element type in strategy configuration.
               </div>
             </template>
           </div>
@@ -654,7 +731,7 @@
                 <span class="text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100"
                   x-text="'Configured: ' + configuredPathText"></span>
                 <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                  Alternate: Perspective → Initiative → Indicator
+                  Alternate: Perspective → Initiative → KPI
                 </span>
               </div>
             </div>
@@ -663,7 +740,7 @@
               <div class="flex items-center justify-between mb-3">
                 <div>
                   <div class="text-sm font-semibold text-gray-900">Expected Navigation Options</div>
-                  <p class="text-xs text-gray-500 mt-0.5">Auto-derived from configured types and indicator-enabled
+                  <p class="text-xs text-gray-500 mt-0.5">Auto-derived from configured types and KPI-enabled
                     types.</p>
                 </div>
                 <span class="text-xs px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100"
@@ -721,7 +798,7 @@
                     </div>
                     <div x-show="t.name==='Initiative'" class="flex items-center gap-1">
                       <a href="indicators.html"
-                        class="text-[11px] px-2 py-1 rounded border border-emerald-200 text-emerald-700 hover:bg-emerald-50">Indicators</a>
+                        class="text-[11px] px-2 py-1 rounded border border-emerald-200 text-emerald-700 hover:bg-emerald-50">KPIs</a>
                       <a href="risks.html"
                         class="text-[11px] px-2 py-1 rounded border border-amber-200 text-amber-700 hover:bg-amber-50">Risks</a>
                     </div>
@@ -759,7 +836,7 @@
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-base font-semibold text-gray-900"
-          x-text="indicatorModal.mode==='existing' ? 'Link Existing Indicator' : 'Create and Link Indicator'"></h3>
+          x-text="indicatorModal.mode==='existing' ? 'Link Existing KPI' : 'Create and Link KPI'"></h3>
         <button @click="closeIndicatorLinkModal()"
           class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -769,7 +846,7 @@
       </div>
 
       <div x-show="indicatorModal.mode==='existing'" class="space-y-2.5">
-        <input x-model="indicatorModal.search" placeholder="Search existing indicators..."
+        <input x-model="indicatorModal.search" placeholder="Search existing KPIs..."
           class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 outline-none" />
         <div class="max-h-44 overflow-y-auto space-y-1.5">
           <template x-for="ind in filteredIndicatorLinkCandidates()" :key="ind.id">
@@ -784,7 +861,7 @@
       </div>
 
       <div x-show="indicatorModal.mode==='new'" class="space-y-2.5">
-        <input x-model="indicatorModal.form.name" placeholder="Indicator name"
+        <input x-model="indicatorModal.form.name" placeholder="KPI name"
           class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 outline-none" />
         <input x-model="indicatorModal.form.current" placeholder="Current value (e.g., 67%)"
           class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 outline-none" />
@@ -797,6 +874,8 @@
             class="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-300 outline-none">
             <option value="IMPACT">Impact (1-10)</option>
             <option value="PERCENT">Contribution %</option>
+            <option value="BUSINESS_VALUE">Business Value (auto)</option>
+            <option value="BUDGETABLE">Planned Budget (auto)</option>
           </select>
         </div>
         <div>
@@ -804,6 +883,7 @@
           <input x-model.number="indicatorModal.form.contributionValue"
             :min="indicatorModal.form.contributionType==='PERCENT' ? 0 : 1"
             :max="indicatorModal.form.contributionType==='PERCENT' ? 100 : 10" type="number" step="1"
+            :disabled="indicatorModal.form.contributionType==='BUSINESS_VALUE' || indicatorModal.form.contributionType==='BUDGETABLE'"
             class="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm focus:ring-2 focus:ring-indigo-300 outline-none" />
         </div>
       </div>
@@ -883,6 +963,8 @@
               <option value="IMPACT">IMPACT (1-10)</option>
               <option value="PERCENT">PERCENT (0-100%)</option>
               <option value="EQUAL">EQUAL (auto)</option>
+              <option value="BUSINESS_VALUE">BUSINESS_VALUE (auto)</option>
+              <option value="BUDGETABLE">BUDGETABLE (auto)</option>
             </select>
           </div>
           <div class="md:col-span-2 flex items-end">
@@ -905,12 +987,17 @@
                     <label class="inline-flex items-center gap-1.5 text-xs text-gray-600">
                       <input type="checkbox" x-model="t.hasIndicators"
                         class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                      Indicators
+                      KPIs
                     </label>
                     <label class="inline-flex items-center gap-1.5 text-xs text-gray-600">
                       <input type="checkbox" x-model="t.hasRisks"
                         class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                       Risks
+                    </label>
+                    <label class="inline-flex items-center gap-1.5 text-xs text-gray-600">
+                      <input type="checkbox" x-model="t.isQuarterlyMeasurable"
+                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                      Quarterly
                     </label>
                     <label class="inline-flex items-center gap-1.5 text-xs text-gray-600">
                       <input type="checkbox" x-model="t.canBeRoot"
@@ -949,6 +1036,8 @@
                     <option value="IMPACT">IMPACT</option>
                     <option value="PERCENT">PERCENT</option>
                     <option value="EQUAL">EQUAL</option>
+                    <option value="BUSINESS_VALUE">BUSINESS_VALUE</option>
+                    <option value="BUDGETABLE">BUDGETABLE</option>
                   </select>
                 </div>
               </div>
@@ -1021,15 +1110,15 @@
         <div x-show="addModal.parentId !== null">
           <label class="text-sm font-medium text-gray-700 block mb-1"
             x-text="'Edge Weight (' + currentAddWeightMethodLabel() + ')'"></label>
-          <div x-show="currentAddWeightMethod() !== 'EQUAL'" class="flex items-center gap-3">
+          <div x-show="currentAddWeightMethod() === 'IMPACT' || currentAddWeightMethod() === 'PERCENT'" class="flex items-center gap-3">
             <input type="range" :min="currentAddWeightRange().min" :max="currentAddWeightRange().max"
               x-model.number="addModal.form.weight" class="flex-1 accent-indigo-600" />
             <span class="bg-indigo-50 text-indigo-700 font-bold px-3 py-1.5 rounded-xl text-sm w-10 text-center"
               x-text="addModal.form.weight"></span>
           </div>
-          <div x-show="currentAddWeightMethod() === 'EQUAL'"
+          <div x-show="currentAddWeightMethod() === 'EQUAL' || currentAddWeightMethod() === 'BUSINESS_VALUE' || currentAddWeightMethod() === 'BUDGETABLE'"
             class="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-            Weight is auto-distributed equally among siblings.
+            Weight is auto-calculated by selected method (Equal / Business Value / Planned Budget).
           </div>
         </div>
       </div>
@@ -1163,11 +1252,11 @@
 
     function app() {
       const defaultTypes = [
-        { id: 1, name: 'Pillar', icon: '🏛️', color: '#6366f1', canBeRoot: true, parentTypeIds: [], hasIndicators: true, hasRisks: true },
-        { id: 2, name: 'Goal', icon: '🎯', color: '#10b981', canBeRoot: false, parentTypeIds: [1], hasIndicators: true, hasRisks: true },
-        { id: 3, name: 'Initiative', icon: '⚡', color: '#f59e0b', canBeRoot: false, parentTypeIds: [2], hasIndicators: true, hasRisks: true },
-        { id: 4, name: 'Program', icon: '📦', color: '#8b5cf6', canBeRoot: false, parentTypeIds: [2], hasIndicators: false, hasRisks: true },
-        { id: 5, name: 'Milestone', icon: '🚩', color: '#ec4899', canBeRoot: false, parentTypeIds: [3], hasIndicators: false, hasRisks: false },
+        { id: 1, name: 'Pillar', icon: '🏛️', color: '#6366f1', canBeRoot: true, parentTypeIds: [], hasIndicators: true, hasRisks: true, isQuarterlyMeasurable: false },
+        { id: 2, name: 'Goal', icon: '🎯', color: '#10b981', canBeRoot: false, parentTypeIds: [1], hasIndicators: true, hasRisks: true, isQuarterlyMeasurable: true },
+        { id: 3, name: 'Initiative', icon: '⚡', color: '#f59e0b', canBeRoot: false, parentTypeIds: [2], hasIndicators: true, hasRisks: true, isQuarterlyMeasurable: true },
+        { id: 4, name: 'Program', icon: '📦', color: '#8b5cf6', canBeRoot: false, parentTypeIds: [2], hasIndicators: false, hasRisks: true, isQuarterlyMeasurable: false },
+        { id: 5, name: 'Milestone', icon: '🚩', color: '#ec4899', canBeRoot: false, parentTypeIds: [3], hasIndicators: false, hasRisks: false, isQuarterlyMeasurable: false },
       ];
 
       const defaultElements = [
@@ -1274,6 +1363,8 @@
           { id: 103, name: 'Digital Services Usage', current: '72%' },
           { id: 104, name: 'Service Resolution Time', current: '18h' },
         ],
+        quarterlyCatalog: [],
+        quarterlyDraft: { baseline: '', direction: 'HIGHER_BETTER', year: new Date().getFullYear() },
         riskCatalog: [
           { id: 1, elementId: 4, name: 'Telecom Operator Delays', level: 'HIGH' },
           { id: 2, elementId: 12, name: 'Regulatory Bottleneck', level: 'MEDIUM' },
@@ -1304,8 +1395,8 @@
             if (this.typeAllowsIndicators(child)) {
               profiles.push({
                 id: `indirect-${parent}-${child}`,
-                label: `Indirect: ${parent} → ${child} Indicators → ${child}`,
-                levels: [parent, `${child} Indicators`, child],
+                label: `Indirect: ${parent} → ${child} KPIs → ${child}`,
+                levels: [parent, `${child} KPIs`, child],
               });
             }
           }
@@ -1313,8 +1404,8 @@
             if (this.typeAllowsIndicators(typeName)) {
               profiles.push({
                 id: `reverse-${typeName}`,
-                label: `Reverse: ${typeName} Indicators → ${typeName}`,
-                levels: [`${typeName} Indicators`, typeName],
+                label: `Reverse: ${typeName} KPIs → ${typeName}`,
+                levels: [`${typeName} KPIs`, typeName],
               });
             }
           });
@@ -1331,7 +1422,7 @@
           this.navSelections = {};
         },
         parseNavLevel(levelLabel) {
-          const suffix = ' Indicators';
+          const suffix = ' KPIs';
           if (levelLabel.endsWith(suffix)) {
             return { kind: 'indicator', typeName: levelLabel.slice(0, -suffix.length) };
           }
@@ -1471,14 +1562,60 @@
           if (!id) return [];
           return this.indicatorCatalog.filter(x => x.elementId === id);
         },
+        linkedKPIsForSelected() { return this.linkedIndicatorsForSelected(); },
         indicatorContributionText(indicator) {
           if (indicator.contributionType === 'PERCENT') return `Contribution: ${indicator.contributionValue ?? 0}%`;
+          if (indicator.contributionType === 'BUSINESS_VALUE') return `Business Value: ${indicator.contributionValue ?? 0}`;
+          if (indicator.contributionType === 'BUDGETABLE') return `Planned Budget: OMR ${indicator.contributionValue ?? 0}`;
           return `Impact: ${indicator.contributionValue ?? 0}/10`;
         },
+        kpiContributionText(indicator) { return this.indicatorContributionText(indicator); },
         linkedRisksForSelected() {
           const id = this.selectedElement?.id;
           if (!id) return [];
           return this.riskCatalog.filter(x => x.elementId === id);
+        },
+        quarterlyEntriesForSelected() {
+          const id = this.selectedElement?.id;
+          if (!id) return [];
+          return this.quarterlyCatalog.filter(x => x.elementId === id);
+        },
+        addQuarterlyYear() {
+          const id = this.selectedElement?.id;
+          const y = Number(this.quarterlyDraft.year);
+          if (!id || !Number.isFinite(y)) return;
+          if (this.quarterlyCatalog.some(x => x.elementId === id && x.year === y)) return;
+          this.quarterlyCatalog.push({
+            elementId: id,
+            baseline: this.quarterlyDraft.baseline,
+            direction: this.quarterlyDraft.direction || 'HIGHER_BETTER',
+            year: y,
+            Q1: { target: 0, actual: 0 },
+            Q2: { target: 0, actual: 0 },
+            Q3: { target: 0, actual: 0 },
+            Q4: { target: 0, actual: 0 },
+          });
+          this.persistState();
+        },
+        removeQuarterlyYear(year) {
+          const id = this.selectedElement?.id;
+          if (!id) return;
+          this.quarterlyCatalog = this.quarterlyCatalog.filter(x => !(x.elementId === id && x.year === year));
+          this.persistState();
+        },
+        quarterlyAlert(entry, quarter) {
+          const q = entry?.[quarter];
+          if (!q) return false;
+          const target = Number(q.target);
+          const actual = Number(q.actual);
+          if (!Number.isFinite(target) || !Number.isFinite(actual)) return false;
+          const threshold = Number(this.strategy?.discrepancyThreshold ?? 5);
+          if (entry.direction === 'LOWER_BETTER') {
+            if (target === 0) return actual > 0;
+            return ((actual - target) / Math.abs(target)) * 100 > threshold;
+          }
+          if (target === 0) return actual < 0;
+          return ((target - actual) / Math.abs(target)) * 100 > threshold;
         },
         parentName(id) { return this.elements.find(e => e.id === id)?.name || 'Unknown parent'; },
         parentOf(childId) {
@@ -1538,7 +1675,7 @@
             return;
           }
           if (!this.typeAllowsIndicators(this.selectedElement.type)) {
-            this.showNotice('Indicators are disabled for this element type in current strategy config.', 'error');
+            this.showNotice('KPIs are disabled for this element type in current strategy config.', 'error');
             return;
           }
           this.indicatorModal = {
@@ -1568,17 +1705,19 @@
           }
           const type = this.indicatorModal.form.contributionType;
           let value = Number(this.indicatorModal.form.contributionValue);
-          if (!Number.isFinite(value)) {
+          if ((type === 'PERCENT' || type === 'IMPACT') && !Number.isFinite(value)) {
             this.indicatorModal.message = 'Contribution value is required.';
             return;
           }
           if (type === 'PERCENT') value = Math.max(0, Math.min(100, value));
           if (type === 'IMPACT') value = Math.max(1, Math.min(10, value));
+          if (type === 'BUSINESS_VALUE') value = Math.max(0, Number(this.selectedElement?.businessValue || 0));
+          if (type === 'BUDGETABLE') value = Math.max(0, Number(this.selectedElement?.plannedBudget || 0));
 
           if (this.indicatorModal.mode === 'existing') {
             const existing = this.indicatorLibrary.find(x => x.id === this.indicatorModal.selectedId);
             if (!existing) {
-              this.indicatorModal.message = 'Please select an indicator.';
+              this.indicatorModal.message = 'Please select a KPI.';
               return;
             }
             this.indicatorCatalog.push({
@@ -1591,7 +1730,7 @@
             });
           } else {
             if (!this.indicatorModal.form.name.trim()) {
-              this.indicatorModal.message = 'Indicator name is required.';
+              this.indicatorModal.message = 'KPI name is required.';
               return;
             }
             this.indicatorCatalog.push({
@@ -1606,7 +1745,7 @@
 
           this.persistState();
           this.closeIndicatorLinkModal();
-          this.showNotice('Indicator linked with contribution settings.', 'success');
+          this.showNotice('KPI linked with contribution settings.', 'success');
         },
         openPaymentModal() {
           this.paymentModal = {
@@ -1665,6 +1804,11 @@
           const rule = this.typeRulesByChildName[typeName];
           return rule ? rule.hasIndicators !== false : true;
         },
+        typeAllowsKPIs(typeName) { return this.typeAllowsIndicators(typeName); },
+        typeAllowsQuarterly(typeName) {
+          const rule = this.typeRulesByChildName[typeName];
+          return rule ? rule.isQuarterlyMeasurable === true : false;
+        },
         typeAllowsRisks(typeName) {
           const rule = this.typeRulesByChildName[typeName];
           return rule ? rule.hasRisks !== false : true;
@@ -1708,17 +1852,22 @@
           const m = this.currentAddWeightMethod();
           if (m === 'PERCENT') return 'Percent 0-100%';
           if (m === 'EQUAL') return 'Equal Distribution';
+          if (m === 'BUSINESS_VALUE') return 'Auto by Business Value';
+          if (m === 'BUDGETABLE') return 'Auto by Planned Budget';
           return 'Impact 1-10';
         },
         currentAddWeightRange() {
           const m = this.currentAddWeightMethod();
           if (m === 'PERCENT') return { min: 0, max: 100 };
+          if (m === 'BUSINESS_VALUE' || m === 'BUDGETABLE') return { min: 0, max: 0 };
           return { min: 1, max: 10 };
         },
         edgeLabelFor(link) {
           const method = link.weightType || 'IMPACT';
           if (method === 'PERCENT') return `${link.weight ?? 0}%`;
           if (method === 'EQUAL') return 'Equal';
+          if (method === 'BUSINESS_VALUE') return `BV ${link.weight ?? 0}`;
+          if (method === 'BUDGETABLE') return `Budget ${link.weight ?? 0}`;
           return `${link.weight ?? 0}`;
         },
 
@@ -1828,6 +1977,12 @@
           if (weightType === 'PERCENT') {
             finalWeight = Math.max(0, Math.min(100, finalWeight || 25));
           }
+          if (weightType === 'BUSINESS_VALUE') {
+            finalWeight = Math.max(0, Number(libraryElement.businessValue || 0));
+          }
+          if (weightType === 'BUDGETABLE') {
+            finalWeight = Math.max(0, Number(libraryElement.plannedBudget || 0));
+          }
 
           this.links.push({ parent: parentId, child: elementId, weight: finalWeight, weightType });
           const strategyElement = this.elements.find(e => e.id === elementId);
@@ -1881,13 +2036,14 @@
             strictHierarchy: this.strategy.strictHierarchy !== false,
             edgeMethods: { ...(this.strategy.edgeMethods || {}) },
             types: this.elementTypes.map(t => {
-              const r = this.typeRulesByChildName[t.name] || { canBeRoot: true, allowedParentTypeNames: [], hasIndicators: true, hasRisks: true };
+              const r = this.typeRulesByChildName[t.name] || { canBeRoot: true, allowedParentTypeNames: [], hasIndicators: true, hasRisks: true, isQuarterlyMeasurable: false };
               return {
                 name: t.name,
                 canBeRoot: !!r.canBeRoot,
                 allowedParentTypeNames: [...(r.allowedParentTypeNames || [])],
                 hasIndicators: r.hasIndicators !== false,
                 hasRisks: r.hasRisks !== false,
+                isQuarterlyMeasurable: r.isQuarterlyMeasurable === true,
               };
             }),
           };
@@ -1937,6 +2093,26 @@
             return false;
           };
           return this.configDraft.types.some(t => dfs(t.name));
+        },
+        hasDraftMultipleTypesPerLevel() {
+          const depthOfDraftType = (typeName, stack = new Set()) => {
+            if (stack.has(typeName)) return 999;
+            const row = this.configDraft.types.find(t => t.name === typeName);
+            if (!row) return 0;
+            const parents = row.allowedParentTypeNames || [];
+            if (row.canBeRoot || parents.length === 0) return 0;
+            stack.add(typeName);
+            const d = 1 + Math.min(...parents.map(p => depthOfDraftType(p, stack)));
+            stack.delete(typeName);
+            return d;
+          };
+          const buckets = {};
+          this.configDraft.types.forEach(t => {
+            const d = depthOfDraftType(t.name);
+            if (!buckets[d]) buckets[d] = [];
+            buckets[d].push(t.name);
+          });
+          return Object.values(buckets).some(arr => arr.length > 1);
         },
         previewMaxLevels() {
           const roots = this.configDraft.types.filter(t => t.canBeRoot).map(t => t.name);
@@ -1992,6 +2168,10 @@
               this.showNotice('Type hierarchy contains a cycle. Please remove cyclic parent-child rules.', 'error');
               return;
             }
+            if (this.hasDraftMultipleTypesPerLevel()) {
+              this.showNotice('One level, one type rule violated. Each level must contain exactly one type.', 'error');
+              return;
+            }
           }
 
           const nextRules = {};
@@ -2001,6 +2181,7 @@
               allowedParentTypeNames: [...(t.allowedParentTypeNames || [])],
               hasIndicators: t.hasIndicators !== false,
               hasRisks: t.hasRisks !== false,
+              isQuarterlyMeasurable: t.isQuarterlyMeasurable === true,
             };
           });
           const nextMaxLevels = this.previewMaxLevels();
@@ -2041,6 +2222,7 @@
               canBeRoot: !!draftType.canBeRoot,
               hasIndicators: draftType.hasIndicators !== false,
               hasRisks: draftType.hasRisks !== false,
+              isQuarterlyMeasurable: draftType.isQuarterlyMeasurable === true,
             };
           });
           this.strategy.weightType = this.configDraft.defaultWeightType;
@@ -2106,6 +2288,7 @@
             libraryElements: this.libraryElements,
             payments: this.payments,
             indicatorCatalog: this.indicatorCatalog,
+            quarterlyCatalog: this.quarterlyCatalog,
           }));
         },
         normalizeLinks() {
@@ -2117,6 +2300,8 @@
             if (weightType === 'EQUAL') weight = 0;
             if (weightType === 'IMPACT') weight = Math.max(1, Math.min(10, weight || 5));
             if (weightType === 'PERCENT') weight = Math.max(0, Math.min(100, weight || 25));
+            if (weightType === 'BUSINESS_VALUE') weight = Math.max(0, weight || 0);
+            if (weightType === 'BUDGETABLE') weight = Math.max(0, weight || 0);
             return { ...l, weightType, weight };
           });
         },
@@ -2174,6 +2359,7 @@
               canBeRoot: !!t.canBeRoot,
               hasIndicators: t.hasIndicators !== false,
               hasRisks: t.hasRisks !== false,
+              isQuarterlyMeasurable: t.isQuarterlyMeasurable === true,
             }));
 
             const byId = Object.fromEntries(this.elementTypes.map(t => [t.id, t]));
@@ -2187,6 +2373,7 @@
                 allowedParentTypeNames,
                 hasIndicators: t.hasIndicators !== false,
                 hasRisks: t.hasRisks !== false,
+                isQuarterlyMeasurable: t.isQuarterlyMeasurable === true,
               };
             });
             this.strategy.edgeMethods = {};
@@ -2204,11 +2391,11 @@
           } else {
             this.elementTypes = clone(defaultTypes);
             this.typeRulesByChildName = {
-              Pillar: { canBeRoot: true, allowedParentTypeNames: [], hasIndicators: true, hasRisks: true },
-              Goal: { canBeRoot: false, allowedParentTypeNames: ['Pillar'], hasIndicators: true, hasRisks: true },
-              Initiative: { canBeRoot: false, allowedParentTypeNames: ['Goal'], hasIndicators: true, hasRisks: true },
-              Program: { canBeRoot: false, allowedParentTypeNames: ['Goal'], hasIndicators: false, hasRisks: true },
-              Milestone: { canBeRoot: false, allowedParentTypeNames: ['Initiative'], hasIndicators: false, hasRisks: false },
+              Pillar: { canBeRoot: true, allowedParentTypeNames: [], hasIndicators: true, hasRisks: true, isQuarterlyMeasurable: false },
+              Goal: { canBeRoot: false, allowedParentTypeNames: ['Pillar'], hasIndicators: true, hasRisks: true, isQuarterlyMeasurable: true },
+              Initiative: { canBeRoot: false, allowedParentTypeNames: ['Goal'], hasIndicators: true, hasRisks: true, isQuarterlyMeasurable: true },
+              Program: { canBeRoot: false, allowedParentTypeNames: ['Goal'], hasIndicators: false, hasRisks: true, isQuarterlyMeasurable: false },
+              Milestone: { canBeRoot: false, allowedParentTypeNames: ['Initiative'], hasIndicators: false, hasRisks: false, isQuarterlyMeasurable: false },
             };
             this.strategy.edgeMethods = {
               'Pillar>Goal': 'IMPACT',
@@ -2241,6 +2428,7 @@
               this.libraryElements = Array.isArray(saved.libraryElements) ? saved.libraryElements : [];
               this.payments = Array.isArray(saved.payments) ? saved.payments : this.payments;
               this.indicatorCatalog = Array.isArray(saved.indicatorCatalog) ? saved.indicatorCatalog : this.indicatorCatalog;
+              this.quarterlyCatalog = Array.isArray(saved.quarterlyCatalog) ? saved.quarterlyCatalog : this.quarterlyCatalog;
 
               if (!this.elementTypes || this.elementTypes.length === 0) {
                 this.elementTypes = Object.keys(this.typeRulesByChildName || {}).map((name, idx) => ({
@@ -2251,6 +2439,7 @@
                   canBeRoot: this.typeRulesByChildName[name]?.canBeRoot !== false,
                   hasIndicators: this.typeRulesByChildName[name]?.hasIndicators !== false,
                   hasRisks: this.typeRulesByChildName[name]?.hasRisks !== false,
+                  isQuarterlyMeasurable: this.typeRulesByChildName[name]?.isQuarterlyMeasurable === true,
                 }));
               }
 

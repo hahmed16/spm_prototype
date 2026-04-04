@@ -1,9 +1,100 @@
 # Advance360 — SPM Module Redesign
 ## Strategic Performance Management: Graph-Based Architecture
 
-**Version:** 3.0
-**Date:** 2026-03-29
+**Version:** 3.1
+**Date:** 2026-04-04
 **Status:** Design Finalized — Pending Implementation Approval
+
+---
+
+## CHANGE ADDENDUM (V3.1 — 2026-04-04)
+
+This addendum formalizes business updates requested after Version 3.0.
+
+### A1) Terminology: Indicators → KPIs
+- In product/UI language, **Indicator** is renamed to **KPI**.
+- Technical compatibility is preserved for existing APIs/tables that still use `indicator` naming.
+- Documentation and mockups should present KPI as the default business term.
+
+### A2) New Edge Weight Methods
+Existing methods:
+- `IMPACT` (1–10)
+- `PERCENT` (0–100)
+- `EQUAL` (auto)
+
+New methods:
+- `BUSINESS_VALUE` (auto): edge contribution derives from child element `business_value`.
+- `BUDGETABLE` (auto): edge contribution derives from child element `planned_budget`.
+
+Rules:
+- For `BUSINESS_VALUE` and `BUDGETABLE`, manual edge weight input is hidden/disabled.
+- Normalization follows existing sibling normalization behavior.
+- If source value is missing or zero, contribution is treated as zero.
+
+### A3) Build Simplification: One Level, One Type
+- Strategy build configuration now enforces **one level = one type**.
+- Multiple types at the same hierarchy depth are invalid.
+- Validation error must block saving configuration when violated.
+- This applies to configuration and runtime build actions.
+
+### A4) New Type Capability: Quarterly Measurable
+New capability on SPM element type:
+- `quarterly_measurable` (boolean)
+
+When enabled for a type:
+- Element detail exposes a **Quarterly** tab.
+- Quarterly model supports:
+  - `baseline_value`
+  - yearly entries:
+    - `year`
+    - `Q1 target`, `Q1 actual`
+    - `Q2 target`, `Q2 actual`
+    - `Q3 target`, `Q3 actual`
+    - `Q4 target`, `Q4 actual`
+
+### A5) Quarterly Alert Threshold
+- Existing strategy discrepancy threshold is reused for quarterly alerts.
+- Direction-aware evaluation is required:
+  - `HIGHER_BETTER`: alert if actual is below target beyond threshold.
+  - `LOWER_BETTER`: alert if actual is above target beyond threshold.
+
+### A6) Predefined Roles With Inherited Permissions
+- Module introduces predefined role templates (examples):
+  - `initiative_member`
+  - `goal_owner`
+  - `strategy_editor`
+  - `risk_coordinator`
+- Role templates grant implicit permission bundles.
+- User assignment to a template auto-inherits mapped permissions.
+- Inheritance is auditable and visible in effective permissions view.
+
+### A7) Explicit Permission Catalog by Domain Object
+Permission families are explicitly modeled per object:
+- Strategy: `create`, `read`, `edit`, `delete`, `share`, `import`, `export`, `configure`, `build`, `navigate`
+- SPM Element Type: `create`, `read`, `edit`, `delete`, `configure_capabilities`, `configure_hierarchy`
+- SPM Element (generic): `create`, `read`, `edit`, `delete`, `link`, `unlink`, `share`, `import`, `export`
+- KPI: `create`, `read`, `edit`, `delete`, `link`, `unlink`, `import_actuals`, `export`
+- Risk: `create`, `read`, `edit`, `delete`, `link`, `unlink`, `mitigate`, `export`
+- Team & Membership: `add_member`, `remove_member`, `edit_member_role`, `override_inherited_role`, `grant_custom_permissions`
+
+Permission dependencies:
+- `delete` requires `read` + `edit`.
+- `share` requires `read`.
+- `import`/`export` require `read`.
+- `configure_*` permissions require `read` + `edit` on the same object scope.
+
+### A8) Team Membership: Inherited Members + Role Override
+- Team panel must show:
+  - direct members
+  - inherited members (with inheritance source)
+- For inherited members, users with manage-members permission can:
+  - unlink inherited membership (detach from current element)
+  - change inherited role (Viewer/Editor/Admin/Custom)
+- If role = `Custom`, permission checklist is shown for per-element grants.
+- Effective permissions view must merge:
+  - inherited permissions
+  - direct role permissions
+  - custom overrides
 
 ---
 
@@ -1656,5 +1747,5 @@ Execute in sequence, within a transaction per organization:
 ---
 
 *Document maintained by the Advance360 engineering team.*
-*Version 3.0 — All corrections from review applied: Budgetable merged, VisionAligned renamed, single-element-per-strategy enforced, OpenFGA permissions model detailed, top-down permission inheritance added, module admin roles clarified, two progress fields added, real-time UI updates specified.*
+*Version 3.1 — Includes KPI terminology, one-level-one-type enforcement, quarterly measurable capability, expanded weight methods (Business Value/Budgetable), inherited role templates, and explicit permission matrix updates.*
 *Implementation begins only after business and management approval.*

@@ -47,7 +47,7 @@
       <div class="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <div class="text-sm font-semibold">Expected Navigation Options</div>
-          <div class="text-xs text-gray-500">Derived from strategy type configuration and indicator-enabled types.</div>
+          <div class="text-xs text-gray-500">Derived from strategy type configuration and KPI-enabled types.</div>
         </div>
         <div class="text-xs text-gray-500">Debug: <span id="dbg"></span></div>
       </div>
@@ -149,7 +149,7 @@
           <div id="vpChildrenList" class="space-y-1.5"></div>
         </div>
         <div>
-          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Indicators</div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">KPIs</div>
           <div id="vpIndicatorsList" class="space-y-1.5"></div>
         </div>
       </div>
@@ -265,9 +265,18 @@
       Program: { canBeRoot: false, allowedParentTypeNames: ['Goal'], hasIndicators: false },
       Milestone: { canBeRoot: false, allowedParentTypeNames: ['Initiative'], hasIndicators: false }
     };
-    const elements = Array.isArray(saved?.elements) && saved.elements.length > 0 ? saved.elements : defaultElements;
-    const links = Array.isArray(saved?.links) && saved.links.length > 0 ? saved.links : defaultLinks;
-    const indicatorCatalog = Array.isArray(saved?.indicatorCatalog) ? saved.indicatorCatalog : defaultIndicators;
+    const rawElements = Array.isArray(saved?.elements) && saved.elements.length > 0 ? saved.elements : defaultElements;
+    const elements = rawElements
+      .map(e => ({ ...e, id: Number(e.id) }))
+      .filter(e => Number.isFinite(e.id) && e.name && e.type);
+    const validIds = new Set(elements.map(e => e.id));
+    const rawLinks = Array.isArray(saved?.links) && saved.links.length > 0 ? saved.links : defaultLinks;
+    const links = rawLinks
+      .map(l => ({ ...l, parent: Number(l.parent), child: Number(l.child) }))
+      .filter(l => Number.isFinite(l.parent) && Number.isFinite(l.child) && validIds.has(l.parent) && validIds.has(l.child));
+    const indicatorCatalog = (Array.isArray(saved?.indicatorCatalog) ? saved.indicatorCatalog : defaultIndicators)
+      .map(i => ({ ...i, id: Number(i.id), elementId: Number(i.elementId) }))
+      .filter(i => Number.isFinite(i.id) && Number.isFinite(i.elementId) && validIds.has(i.elementId));
     const libraryElements = Array.isArray(saved?.libraryElements) && saved.libraryElements.length > 0
       ? saved.libraryElements
       : [...defaultElements, ...extraLibrary];
@@ -291,6 +300,8 @@
 
   function contributionText(ind){
     if (ind.contributionType === 'PERCENT') return 'Contribution ' + (ind.contributionValue || 0) + '%';
+    if (ind.contributionType === 'BUSINESS_VALUE') return 'Business Value ' + (ind.contributionValue || 0);
+    if (ind.contributionType === 'BUDGETABLE') return 'Planned Budget OMR ' + (ind.contributionValue || 0);
     return 'Impact ' + (ind.contributionValue || 0) + '/10';
   }
 
@@ -328,17 +339,17 @@
       const p = ordered[i];
       const c = ordered[i + 1];
       if (typeAllowsIndicators(c)) {
-        profiles.push({ id:'indirect-' + i, label:'Indirect: ' + p + ' → ' + c + ' Indicators → ' + c, levels:[p, c + ' Indicators', c] });
+        profiles.push({ id:'indirect-' + i, label:'Indirect: ' + p + ' → ' + c + ' KPIs → ' + c, levels:[p, c + ' KPIs', c] });
       }
     }
     ordered.forEach(t => {
-      if (typeAllowsIndicators(t)) profiles.push({ id:'reverse-' + t, label:'Reverse: ' + t + ' Indicators → ' + t, levels:[t + ' Indicators', t] });
+      if (typeAllowsIndicators(t)) profiles.push({ id:'reverse-' + t, label:'Reverse: ' + t + ' KPIs → ' + t, levels:[t + ' KPIs', t] });
     });
     return profiles;
   }
 
   function parseLevel(label){
-    const s = ' Indicators';
+    const s = ' KPIs';
     if (label.endsWith(s)) return { kind:'indicator', typeName: label.slice(0, -s.length) };
     return { kind:'type', typeName: label };
   }
@@ -477,7 +488,7 @@
     const il = document.getElementById('vpIndicatorsList');
     il.innerHTML = '';
     if (inds.length === 0) {
-      il.innerHTML = '<div class="text-xs text-gray-400 italic">No indicators linked.</div>';
+      il.innerHTML = '<div class="text-xs text-gray-400 italic">No KPIs linked.</div>';
     } else {
       inds.forEach(ind => {
         const row = document.createElement('div');
@@ -494,13 +505,13 @@
     if (!ind) return;
     const owner = elementById(ind.elementId);
     app.viewTarget = { kind: 'indicator', id: indId };
-    document.getElementById('viewPanelType').textContent = 'Indicator';
+    document.getElementById('viewPanelType').textContent = 'KPI';
     document.getElementById('viewPanelTitle').textContent = ind.name;
     document.getElementById('vpStatus').textContent = owner?.status || '-';
-    document.getElementById('vpType').textContent = owner ? (owner.type + ' Indicator') : 'Indicator';
+    document.getElementById('vpType').textContent = owner ? (owner.type + ' KPI') : 'KPI';
     document.getElementById('vpParent').textContent = owner ? owner.name : '-';
     document.getElementById('vpChildrenCount').textContent = '0';
-    document.getElementById('vpChildrenList').innerHTML = '<div class="text-xs text-gray-400 italic">Indicators do not have child elements.</div>';
+    document.getElementById('vpChildrenList').innerHTML = '<div class="text-xs text-gray-400 italic">KPIs do not have child elements.</div>';
     document.getElementById('vpIndicatorsList').innerHTML =
       '<div class="border border-gray-200 rounded-lg px-2.5 py-2">' +
         '<div class="text-xs font-medium text-gray-800">Contribution</div>' +
@@ -820,6 +831,12 @@
         weightInput.max = '10';
         weightInput.value = '5';
         hint.textContent = 'Impact score 1-10';
+      } else if (method === 'BUSINESS_VALUE' || method === 'BUDGETABLE') {
+        weightWrap.classList.remove('hidden');
+        weightInput.min = '0';
+        weightInput.max = '0';
+        weightInput.value = '0';
+        hint.textContent = method === 'BUSINESS_VALUE' ? 'Auto from business value' : 'Auto from planned budget';
       } else {
         weightWrap.classList.add('hidden');
       }
@@ -945,6 +962,8 @@
       if (method === 'IMPACT') weight = Math.max(1, Math.min(10, weight || 5));
       if (method === 'PERCENT') weight = Math.max(0, Math.min(100, weight || 25));
       if (method === 'EQUAL') weight = 0;
+      if (method === 'BUSINESS_VALUE') weight = Math.max(0, Number(targetElement.businessValue || 0));
+      if (method === 'BUDGETABLE') weight = Math.max(0, Number(targetElement.plannedBudget || 0));
       app.state.links.push({ parent: parentId, child: targetElement.id, weight, weightType: method });
       targetElement.weight = weight;
     }

@@ -142,12 +142,16 @@
               <div class="border-t border-gray-100 px-4 py-3 bg-gray-50">
                 <div class="grid grid-cols-2 gap-2 mb-3">
                   <label class="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs">
-                    <span class="text-gray-600">Indicators</span>
-                    <input type="checkbox" x-model="t.hasIndicators" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                    <span class="text-gray-600">KPIs</span>
+                    <input type="checkbox" x-model="t.hasKPIs" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                   </label>
                   <label class="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs">
                     <span class="text-gray-600">Risks</span>
                     <input type="checkbox" x-model="t.hasRisks" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                  </label>
+                  <label class="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs col-span-2">
+                    <span class="text-gray-600">Quarterly Measurable</span>
+                    <input type="checkbox" x-model="t.isQuarterlyMeasurable" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                   </label>
                 </div>
                 <!-- Can be root -->
@@ -276,7 +280,7 @@
     <!-- Default weight input type -->
     <div class="mb-6">
       <label class="block text-sm font-medium text-gray-700 mb-3">Default Weight Input Method <span class="text-gray-400 font-normal">(used when a pair has no override)</span></label>
-      <div class="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-5 gap-3">
         <button @click="form.weightType='IMPACT'"
                 :class="form.weightType==='IMPACT'?'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200':'border-gray-200'"
                 class="border-2 rounded-xl p-4 text-left transition hover:border-indigo-300">
@@ -297,6 +301,20 @@
           <div class="text-2xl mb-2">⚖️</div>
           <div class="font-semibold text-gray-800 text-sm">Equal Weight</div>
           <div class="text-xs text-gray-500 mt-1">All siblings get equal weight automatically.</div>
+        </button>
+        <button @click="form.weightType='BUSINESS_VALUE'"
+                :class="form.weightType==='BUSINESS_VALUE'?'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200':'border-gray-200'"
+                class="border-2 rounded-xl p-4 text-left transition hover:border-indigo-300">
+          <div class="text-2xl mb-2">💼</div>
+          <div class="font-semibold text-gray-800 text-sm">Business Value</div>
+          <div class="text-xs text-gray-500 mt-1">Auto weight from each child element business value.</div>
+        </button>
+        <button @click="form.weightType='BUDGETABLE'"
+                :class="form.weightType==='BUDGETABLE'?'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200':'border-gray-200'"
+                class="border-2 rounded-xl p-4 text-left transition hover:border-indigo-300">
+          <div class="text-2xl mb-2">💰</div>
+          <div class="font-semibold text-gray-800 text-sm">Planned Budget</div>
+          <div class="text-xs text-gray-500 mt-1">Auto weight from planned budget of each child element.</div>
         </button>
       </div>
     </div>
@@ -324,6 +342,8 @@
                 <option value="IMPACT">IMPACT (1-10)</option>
                 <option value="PERCENT">PERCENT (0-100%)</option>
                 <option value="EQUAL">EQUAL (auto)</option>
+                <option value="BUSINESS_VALUE">BUSINESS_VALUE (auto)</option>
+                <option value="BUDGETABLE">BUDGETABLE (auto)</option>
               </select>
             </div>
           </div>
@@ -398,11 +418,11 @@ function app() {
     edgeMethods: {},
 
     availableTypes: [
-      { id:1, name:'Pillar',     icon:'🏛️', color:'#6366f1', isBudgetable:false, isTrackable:false, isVisionAligned:true,  canBeRoot:true,  hasIndicators:true, hasRisks:true  },
-      { id:2, name:'Goal',       icon:'🎯', color:'#10b981', isBudgetable:false, isTrackable:true,  isVisionAligned:true,  canBeRoot:false, hasIndicators:true, hasRisks:true },
-      { id:3, name:'Initiative', icon:'⚡', color:'#f59e0b', isBudgetable:true,  isTrackable:true,  isVisionAligned:false, canBeRoot:false, hasIndicators:true, hasRisks:true },
-      { id:4, name:'Program',    icon:'📦', color:'#8b5cf6', isBudgetable:true,  isTrackable:true,  isVisionAligned:false, canBeRoot:false, hasIndicators:false,hasRisks:true },
-      { id:5, name:'Milestone',  icon:'🚩', color:'#ec4899', isBudgetable:false, isTrackable:true,  isVisionAligned:false, canBeRoot:false, hasIndicators:false,hasRisks:false },
+      { id:1, name:'Pillar',     icon:'🏛️', color:'#6366f1', isBudgetable:false, isTrackable:false, isVisionAligned:true,  canBeRoot:true,  hasKPIs:true, hasRisks:true, isQuarterlyMeasurable:false  },
+      { id:2, name:'Goal',       icon:'🎯', color:'#10b981', isBudgetable:false, isTrackable:true,  isVisionAligned:true,  canBeRoot:false, hasKPIs:true, hasRisks:true, isQuarterlyMeasurable:true },
+      { id:3, name:'Initiative', icon:'⚡', color:'#f59e0b', isBudgetable:true,  isTrackable:true,  isVisionAligned:false, canBeRoot:false, hasKPIs:true, hasRisks:true, isQuarterlyMeasurable:true },
+      { id:4, name:'Program',    icon:'📦', color:'#8b5cf6', isBudgetable:true,  isTrackable:true,  isVisionAligned:false, canBeRoot:false, hasKPIs:false,hasRisks:true, isQuarterlyMeasurable:false },
+      { id:5, name:'Milestone',  icon:'🚩', color:'#ec4899', isBudgetable:false, isTrackable:true,  isVisionAligned:false, canBeRoot:false, hasKPIs:false,hasRisks:false, isQuarterlyMeasurable:false },
     ],
     selectedTypeIds: [1, 2, 3],
 
@@ -548,7 +568,29 @@ function app() {
       if (this.hasTypeCycle()) {
         warnings.push('Type hierarchy contains a cycle. A strict build requires an acyclic hierarchy.');
       }
+      const depthBuckets = {};
+      this.selectedTypes.forEach(t => {
+        const d = this.typeDepthForValidation(t.id);
+        if (!depthBuckets[d]) depthBuckets[d] = [];
+        depthBuckets[d].push(t.name);
+      });
+      Object.entries(depthBuckets).forEach(([depth, names]) => {
+        if (names.length > 1) {
+          warnings.push(`One level, one type rule violated at level ${Number(depth) + 1}: ${names.join(', ')}`);
+        }
+      });
       return warnings;
+    },
+    typeDepthForValidation(typeId, stack = new Set()) {
+      if (stack.has(typeId)) return 999;
+      const type = this.selectedTypes.find(t => t.id === typeId);
+      if (!type) return 0;
+      const parents = this.parentRules[typeId] || [];
+      if (type.canBeRoot || parents.length === 0) return 0;
+      stack.add(typeId);
+      const d = 1 + Math.min(...parents.map(p => this.typeDepthForValidation(p, stack)));
+      stack.delete(typeId);
+      return d;
     },
 
     get canNext() {
@@ -569,8 +611,10 @@ function app() {
         isTrackable: t.isTrackable,
         isVisionAligned: t.isVisionAligned,
         canBeRoot: !!t.canBeRoot,
-        hasIndicators: !!t.hasIndicators,
+        hasKPIs: !!t.hasKPIs,
+        hasIndicators: !!t.hasKPIs,
         hasRisks: !!t.hasRisks,
+        isQuarterlyMeasurable: !!t.isQuarterlyMeasurable,
       }));
 
       const strategyDraft = {

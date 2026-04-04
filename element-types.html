@@ -59,6 +59,7 @@
     <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Budgetable — tracks planned & actual budget + payments</span>
     <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-violet-500 inline-block"></span> Trackable — has progress log &amp; milestone tracking</span>
     <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> VisionAligned — can be linked to a Vision Priority</span>
+    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-cyan-500 inline-block"></span> Quarterly Measurable — supports yearly baseline with Q1–Q4 target/actual</span>
   </div>
 
   <!-- Types list -->
@@ -116,6 +117,17 @@
                     class="absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform block"></span>
             </button>
             <span class="text-xs" :class="t.isVisionAligned ? 'text-amber-600 font-medium' : 'text-gray-400'">Vision</span>
+          </div>
+
+          <!-- Quarterly -->
+          <div class="flex flex-col items-center gap-1">
+            <button @click="t.isQuarterlyMeasurable = !t.isQuarterlyMeasurable; showSaved(t.id)"
+                    :class="t.isQuarterlyMeasurable ? 'bg-cyan-500' : 'bg-gray-200'"
+                    class="relative w-10 h-6 rounded-full transition-colors focus:outline-none">
+              <span :class="t.isQuarterlyMeasurable ? 'translate-x-5' : 'translate-x-1'"
+                    class="absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform block"></span>
+            </button>
+            <span class="text-xs" :class="t.isQuarterlyMeasurable ? 'text-cyan-600 font-medium' : 'text-gray-400'">Quarterly</span>
           </div>
         </div>
 
@@ -223,6 +235,13 @@
               <p class="text-xs text-gray-400">Link elements to national/org Vision priorities for alignment tracking</p>
             </div>
           </label>
+          <label class="flex items-center gap-3 p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <input type="checkbox" x-model="modal.form.isQuarterlyMeasurable" class="w-4 h-4 text-cyan-500 rounded" />
+            <div>
+              <span class="text-sm font-medium text-gray-700">Quarterly Measurable</span>
+              <p class="text-xs text-gray-400">Enable yearly baseline with Q1–Q4 target/actual tracking and threshold alerts</p>
+            </div>
+          </label>
         </div>
       </div>
     </div>
@@ -263,18 +282,18 @@ function app() {
     modal: { open: false, isEdit: false, editId: null, form: {} },
     deleteModal: { open: false, target: null },
     types: [
-      { id: 1, name: 'Pillar', icon: '🏛️', color: '#6366f1', description: 'Top-level strategic pillar grouping related goals', isSystem: true, isCustom: false, isBudgetable: false, isTrackable: false, isVisionAligned: true, usedIn: 4, elementCount: 8 },
-      { id: 2, name: 'Goal', icon: '🎯', color: '#10b981', description: 'A strategic objective to be achieved within a timeframe', isSystem: true, isCustom: false, isBudgetable: false, isTrackable: true, isVisionAligned: true, usedIn: 5, elementCount: 22 },
-      { id: 3, name: 'Initiative', icon: '⚡', color: '#f59e0b', description: 'A concrete action or project contributing to a goal', isSystem: true, isCustom: false, isBudgetable: true, isTrackable: true, isVisionAligned: false, usedIn: 5, elementCount: 31 },
-      { id: 4, name: 'Program', icon: '📦', color: '#8b5cf6', description: 'A group of related initiatives managed together', isSystem: false, isCustom: true, isBudgetable: true, isTrackable: true, isVisionAligned: false, usedIn: 2, elementCount: 7 },
-      { id: 5, name: 'Milestone', icon: '🚩', color: '#ec4899', description: 'A key checkpoint or deliverable within an initiative', isSystem: false, isCustom: true, isBudgetable: false, isTrackable: true, isVisionAligned: false, usedIn: 2, elementCount: 14 },
+      { id: 1, name: 'Pillar', icon: '🏛️', color: '#6366f1', description: 'Top-level strategic pillar grouping related goals', isSystem: true, isCustom: false, isBudgetable: false, isTrackable: false, isVisionAligned: true, isQuarterlyMeasurable: false, usedIn: 4, elementCount: 8 },
+      { id: 2, name: 'Goal', icon: '🎯', color: '#10b981', description: 'A strategic objective to be achieved within a timeframe', isSystem: true, isCustom: false, isBudgetable: false, isTrackable: true, isVisionAligned: true, isQuarterlyMeasurable: true, usedIn: 5, elementCount: 22 },
+      { id: 3, name: 'Initiative', icon: '⚡', color: '#f59e0b', description: 'A concrete action or project contributing to a goal', isSystem: true, isCustom: false, isBudgetable: true, isTrackable: true, isVisionAligned: false, isQuarterlyMeasurable: true, usedIn: 5, elementCount: 31 },
+      { id: 4, name: 'Program', icon: '📦', color: '#8b5cf6', description: 'A group of related initiatives managed together', isSystem: false, isCustom: true, isBudgetable: true, isTrackable: true, isVisionAligned: false, isQuarterlyMeasurable: false, usedIn: 2, elementCount: 7 },
+      { id: 5, name: 'Milestone', icon: '🚩', color: '#ec4899', description: 'A key checkpoint or deliverable within an initiative', isSystem: false, isCustom: true, isBudgetable: false, isTrackable: true, isVisionAligned: false, isQuarterlyMeasurable: false, usedIn: 2, elementCount: 14 },
     ],
     showSaved(id) {
       this.savedId = id;
       setTimeout(() => { this.savedId = null; }, 1800);
     },
     openAdd() {
-      this.modal = { open: true, isEdit: false, editId: null, form: { name: '', description: '', icon: '🔷', color: '#6366f1', isBudgetable: false, isTrackable: false, isVisionAligned: false } };
+      this.modal = { open: true, isEdit: false, editId: null, form: { name: '', description: '', icon: '🔷', color: '#6366f1', isBudgetable: false, isTrackable: false, isVisionAligned: false, isQuarterlyMeasurable: false } };
     },
     openEdit(t) {
       this.modal = { open: true, isEdit: true, editId: t.id, form: { ...t } };
